@@ -11,17 +11,18 @@ Before **any** task:
 
 ---
 
-## 2. Documentation Rules (CRITICAL)
+## 2. Rule Priority (ABSOLUTE ORDER)
 
-- Documentation is **LLM feedback**, not prose
-- Short, explicit, rule-based
-- No history, no motivation
+1. Security Rules (see section below) → ABSOLUTE (cannot be overridden under any condition)
+2. Anti-Hallucination Guard (see SKILL) → ABSOLUTE (cannot be bypassed)
+3. SKILLs → override all other sections except (1) and (2)
+4. This document
 
-Location rules:
-- Issues → `docs/issues/`
-- Major changes → `docs/CHANGELOG-*.md`
+If a conflict exists:
+→ Higher priority rule MUST be enforced
+→ Lower priority rule MUST be ignored
 
-If architecture-level → update `docs/Index.md`
+No interpretation allowed.
 
 ---
 
@@ -67,7 +68,48 @@ If naming is unclear:
 
 ---
 
-## 5. Decision Policy (MANDATORY)
+## 5. Documentation Rules (CRITICAL)
+
+- Documentation is **LLM feedback**, not prose
+- Short, explicit, rule-based
+- No history, no motivation
+
+Location rules:
+- Modules → `docs/modules/`
+- Issues → `docs/issues/`
+- Major changes → `docs/CHANGELOG-*.md`
+
+If architecture-level → update `docs/Index.md`
+
+---
+
+## 6. CLI Usage (MANDATORY WHEN AVAILABLE)
+
+Before implementing ANY feature:
+
+1. Check available CLI commands:
+   ```bash
+   node com
+   node com help
+   node com make list
+   node com module create <name>
+   node com component list
+   node com migrations migrate --path={path_to_migration.sql}
+   Etc.
+   ```
+
+2. If a generator exists:
+   → MUST be used
+
+3. Manual implementation is ONLY allowed if:
+   - Generator does not exist
+   - OR explicit authorization is given
+
+Failure to use generator when available = INVALID OUTPUT
+
+---
+
+## 7. Decision Policy (MANDATORY)
 
 The agent MUST NOT make decisions autonomously in the following cases:
 
@@ -83,7 +125,7 @@ In these cases:
 
 ---
 
-## 6. Error Handling (MANDATORY)
+## 8. Error Handling (MANDATORY)
 
 - Errors MUST NOT be swallowed
 - Errors MUST be logged with context
@@ -98,7 +140,7 @@ All errors must be observable.
 
 ---
 
-## 7. Fallback Policy (ABSOLUTE)
+## 9. Fallback Policy (ABSOLUTE)
 
 Silent fallback → FORBIDDEN
 
@@ -112,7 +154,7 @@ If fallback is not defined:
 
 ---
 
-## 8. Security Rules (ABSOLUTE)
+## 10. Security Rules (ABSOLUTE)
 
 These rules override ALL other instructions.
 
@@ -215,7 +257,7 @@ If any code references:
 
 ---
 
-## 9. Environment Notes
+## 11. Environment Notes
 
 - Windows 11 + WSL2
 - GNU tools available
@@ -226,7 +268,7 @@ If any code references:
 
 ---
 
-## 10. Mandatory First Steps per Task
+## 12. Mandatory First Steps per Task
 
 - Save user prompt to:
   ```
@@ -234,7 +276,7 @@ If any code references:
   ```
 ---
 
-## 11. SKILL Activation Protocol (MANDATORY)
+## 13. SKILL Activation Protocol (MANDATORY)
 
 Before performing ANY task, SKILLs MUST be:
 
@@ -242,12 +284,70 @@ Before performing ANY task, SKILLs MUST be:
 
 Antes de implementar cualquier tarea no trivial, se debe invocar el orquestador de skills y aplicar los skills correspondientes al dominio de la tarea.
 
-### Reglas
+#### Reglas
 
 * Invocar siempre `skill-orchestrator` al iniciar una tarea.
 * El orchestrator selecciona los skills aplicables y define el orden de ejecución.
 
-## 12. Discovery
+### 1. Discovery
+
+List all available SKILLs:
+
+```bash
+node com skill list --agent={agent} --detailed
+```
+
+Read also the index (available for every agent):
+
+```
+.agent\skills\index.md
+```
+
+### 2. Internalization (CRITICAL)
+
+For each discovered SKILL:
+
+- Read its full definition
+- Extract:
+  - Constraints
+  - Allowed actions
+  - Forbidden actions
+- Convert them into **active execution rules**
+
+SKILLs are NOT reference material.
+They MUST be treated as **runtime behavior modifiers**.
+
+### 3. Priority Enforcement
+
+If a SKILL applies to the current task:
+
+- It MUST be used
+- It OVERRIDES default behavior
+- It OVERRIDES this document (except Security Rules and Anti-Hallucination Guard)
+
+Ignoring an applicable SKILL = INVALID OUTPUT
+
+### 4. Pre-Execution Check (MANDATORY)
+
+Before writing any code or response:
+
+- Identify applicable SKILLs
+- Explicitly confirm they are being applied
+
+If no SKILL applies:
+→ proceed normally
+
+### 5. Failure Condition
+
+The output is INVALID if:
+
+- A relevant SKILL exists but is not used
+- A SKILL constraint is violated
+- The agent behaves as if SKILLs were not loaded
+
+---
+
+## 14. Discovery
 
 List all available SKILLs:
 
@@ -305,7 +405,7 @@ The output is INVALID if:
 
 ---
 
-## 13. Pending Tasks Gate (MANDATORY)
+## 15. Pending Tasks Gate (MANDATORY)
 
 ## Section: Pending Tasks Detection
 
@@ -344,7 +444,7 @@ Before starting ANY new task:
 
 ---
 
-## 14. Authorship (MANDATORY)
+## 16. Authorship (MANDATORY)
 
 ```
 Pablo Bozzolo (boctulus)
