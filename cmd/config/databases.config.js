@@ -37,10 +37,10 @@ export default {
          */
         main: {
             driver: 'pgsql',
-            host: env('SUPABASE_HOST', 'aws-1-us-east-1.pooler.supabase.com'), // Supabase Connection Pooler (Session mode)
+            host: env('SUPABASE_HOST'), // Supabase Connection Pooler (Session mode)
             port: Number(env('SUPABASE_PORT', 5432)),
             db_name: env('SUPABASE_DATABASE', 'postgres'), // Supabase uses postgres by default
-            user: env('SUPABASE_USER', `postgres.${env('SUPABASE_PROJECT_REF', 'srcgnmyevaavcaazrorr')}`), // Format: postgres.project_ref
+            user: env('SUPABASE_USER', `postgres.${env('SUPABASE_PROJECT_REF')}`), // Format: postgres.project_ref
             pass: env('SUPABASE_PASSWORD', env('SUPABASE_DB_PASSWORD')), // Use DB password, not SERVICE_KEY (which is JWT for API)
             charset: 'utf8',
             schema: 'public',
