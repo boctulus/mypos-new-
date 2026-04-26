@@ -1,0 +1,17 @@
+{
+  "idField": "ID_USU",
+  "required": [
+    {
+      "field": "ID_USU",
+      "type": "integer"
+    },
+    {
+      "field": "NOMBRE_USU",
+      "type": "string"
+    },
+    {
+      "field": "CORREO",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "required": [
+    {
+      "field": "product_id",
+      "type": "string"
+    },
+    {
+      "field": "description",
+      "type": "string"
+    },
+    {
+      "field": "brand",
+      "type": "string"
+    },
+    {
+      "field": "ean",
+      "type": "string"
+    },
+    {
+      "field": "categories",
+      "type": "array"
+    },
+    {
+      "field": "updated_at",
+      "type": "timestamp"
+    },
+    {
+      "field": "created_at",
+      "type": "timestamp"
+    },
+    {
+      "field": "deleted_at",
+      "type": "timestamp"
+    }
+  ],
+  "optional": [
+    {
+      "field": "vat",
+      "type": "null"
+    },
+    {
+      "field": "regionalVAT",
+      "type": "null"
+    },
+    {
+      "field": "price",
+      "type": "number"
+    },
+    {
+      "field": "msrp",
+      "type": "number"
+    },
+    {
+      "field": "promotions",
+      "type": "array"
+    }
+  ]
+}

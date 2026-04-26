@@ -1,0 +1,11 @@
+{
+  "mappings": {
+    "ID": "id",
+    "Name": "name",
+    "Description": "description"
+  },
+  "transform": {
+    "id": "(value, tenant_id) => tenant_id ? tenant_id + '#' + value.trim() : value.trim()",
+    "name": "value => value.toUpperCase()"
+  }
+}

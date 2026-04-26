@@ -1,0 +1,14 @@
+{
+  "mappings": {
+    "ean": "ean",
+    "branch_id": "branch_id",
+    "price": "price",
+    "stock": "stock"
+  },
+  "transform": {
+    "id": "(value, tenant_id, data) => { if (!data.ean || !data.branch_id) { console.error('Missing ean or branch_id in data:', data); return null; } return `${data.ean}.${data.branch_id}`; }",
+    "store_id": "(value, tenant_id) => tenant_id || 'default_store'",
+    "stock": "value => value ? parseInt(value) : null",
+    "price": "value => value ? parseFloat(value) : null"
+  }
+}

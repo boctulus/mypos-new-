@@ -1,0 +1,16 @@
+.sessions/
+node_modules/
+*.zip
+*.rar
+*.tar
+logs/
+tmp/
+.codegpt
+.claude/settings.local.json
+.env
+.env.production
+.next/
+docs/login-credentials.md
+docs/deploy/deploy-process.md
+docs/deploy/ssh-access.txt
+public/uploads/

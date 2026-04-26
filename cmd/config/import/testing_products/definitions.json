@@ -1,0 +1,29 @@
+{
+  "required": [
+    {
+      "field": "id",
+      "type": "string",
+      "note": "ean code"
+    },
+    {
+      "field": "description",
+      "type": "string"
+    }
+  ],
+  "optional": [
+    {
+      "field": "brand",
+      "type": "string"
+    },
+    {
+      "field": "unit",
+      "type": "string",
+      "example": "cm3"
+    },
+    {
+      "field": "package_quantity",
+      "type": "number",
+      "example": 2
+    }
+  ]
+}

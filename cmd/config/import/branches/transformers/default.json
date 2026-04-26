@@ -1,0 +1,10 @@
+{
+  "mappings": {
+    "ID": "id",
+    "Name": "name",
+    "Description": "description"
+  },
+  "transform": {
+    "id": "value => value.trim()"
+  }
+}

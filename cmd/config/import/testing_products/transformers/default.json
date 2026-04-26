@@ -1,0 +1,12 @@
+{
+  "mappings": {
+    "id_producto": "id",
+    "productos_descripcion": "description",
+    "productos_cantidad_presentacion": "package_quantity",
+    "productos_unidad_medida_presentacion": "unit",
+    "productos_marca": "brand"
+  },
+  "transform": {
+    "description": "value => value ? value.trim() : ''"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "idField": "id",
+  "required": [
+    {
+      "field": "ean",
+      "type": "string",
+      "note": "Identificador del producto padre (usado como parent-key, no almacenado en branches)"
+    },
+    {
+      "field": "branch_id",
+      "type": "string",
+      "note": "Identificador de la sucursal"
+    },
+    {
+      "field": "price",
+      "type": "number",
+      "note": "Precio del producto en la sucursal"
+    },
+    {
+      "field": "stock",
+      "type": "number",
+      "note": "Stock disponible en la sucursal"
+    }
+  ],
+  "optional": []
+}

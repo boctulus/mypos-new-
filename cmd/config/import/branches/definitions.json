@@ -1,0 +1,19 @@
+{
+  "idField": "id",
+  "required": [
+    {
+      "field": "id",
+      "type": "string"
+    },
+    {
+      "field": "name",
+      "type": "string"
+    }
+  ],
+  "optional": [
+    {
+      "field": "description",
+      "type": "string"
+    }
+  ]
+}

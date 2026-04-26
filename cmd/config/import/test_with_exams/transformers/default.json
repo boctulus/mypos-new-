@@ -1,0 +1,12 @@
+{
+  "mappings": {
+    "ID_USU": "id",
+    "NOMBRE_USU": "username",
+    "CORREO": "email",
+    "FINAL": "final"
+  },
+  "transform": {
+    "id": "value => value.trim()",
+    "final": "value => Number(value)"
+  }
+}
