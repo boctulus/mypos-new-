@@ -90,11 +90,7 @@ Before implementing ANY feature:
 1. Check available CLI commands:
    ```bash
    node com
-   node com help
-   node com make list
-   node com module create <name>
-   node com component list
-   node com migrations migrate --path={path_to_migration.sql}
+   node com sql help
    Etc.
    ```
 
