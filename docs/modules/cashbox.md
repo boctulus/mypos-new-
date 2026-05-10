@@ -81,3 +81,48 @@ Un único método en el ViewModel cierra tanto la sesión propia (cajero) como l
 - Siempre filtra `_allOpenSessions` eliminando la sesión cerrada
 - Para cajero: `CashboxFragment.LaunchedEffect(successMessage)` detecta `role == "cashier"` y hace logout
 - Para supermarket: no hay logout, solo se actualiza la lista
+
+---
+
+## Validación de cierre — diferencia y nota obligatoria
+
+**Archivo:** `compose/screen/CashboxScreen.kt` → `CashboxCloseContent`
+
+### Fuente del monto esperado
+
+```
+expectedAmount = session.totalCash ?: session.initialAmount
+```
+
+El backend calcula `expected_amount` via `enrichWithExpected()` en `GET /sessions/current`.  
+`totalCash` es el equivalente en tiempo real: `initialAmount + totalSales - totalExpenses`.  
+No se necesita endpoint adicional: la diferencia se calcula client-side igual que en el Node.js.
+
+### Reglas (idénticas al Node.js)
+
+```
+diff = abs(expectedAmount - finalAmount)
+diffPercent = if (expectedAmount > 0) (diff / expectedAmount) * 100
+              else if (diff > 0) 100.0 else 0.0
+```
+
+| Condición | Comportamiento |
+|---|---|
+| `diff == 0` | Cierre directo, sin diálogo |
+| `diffPercent >= 1%` y `notes` vacío | **Bloquear** — campo notes marcado como error, se requiere nota |
+| `diff > 0` y notes OK | Diálogo de confirmación antes de cerrar |
+
+### Niveles del diálogo de confirmación
+
+| Rango | Color | Título |
+|---|---|---|
+| `diffPercent > 5%` | Rojo `#E53935` | "Alta Diferencia Detectada" |
+| `1% ≤ diffPercent ≤ 5%` | Naranja `#F57C00` | "Diferencia Intermedia Detectada" |
+| `diffPercent < 1%` | Azul `#1976D2` | "Diferencia Mínima Detectada" |
+
+### Estados del campo `notes`
+
+- Label normal: `"Notas de cierre (obligatorio si diferencia ≥ 1%)"`
+- Label error: `"Notas de cierre *"` + `supportingText` en rojo
+- `isError = notesRequired && notes.isBlank()`
+- Focus automático via `FocusRequester` cuando se activa `notesRequired`
