@@ -38,6 +38,16 @@ role == "cashier" + sin sesión     → CashboxOpenScreen (abrir sesión en caja
 
 ---
 
+## Reglas de terminal (ABSOLUTO)
+
+- Una terminal NO puede tener más de una caja abierta simultáneamente
+- `terminalHasOpenSession = currentSession?.status == "open"`
+- Si `terminalHasOpenSession == true`: ocultar "Abrir Caja" en toda caja, incluso para `role == "supermarket"`
+- Si `terminalHasOpenSession == true`: la tarjeta de la sesión activa muestra "Ver detalles" + "Cerrar caja"
+- Si `role != "supermarket"` y `currentSession != null`: la pantalla redirige a `CashboxCloseContent`
+
+---
+
 ## Reglas
 
 - `availableCashboxes` = cajas activas cuyo `serialNumber` NO aparece en ninguna sesión de `allOpenSessions`
