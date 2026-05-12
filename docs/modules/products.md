@@ -5,7 +5,7 @@
 | Archivo | Rol |
 |---|---|
 | `api/dto/ProductDto.kt` | DTO de respuesta + mapper a `model/Product` |
-| `repository/ProductRepository.kt` | `getAll()` y `searchQuick(query)` |
+| `repository/ProductRepository.kt` | `getPage(cursor, limit)` y `searchQuick(query)` — data class `ProductPage` |
 | `compose/viewmodel/InventoryViewModel.kt` | Carga y filtrado de inventario |
 | `compose/screen/InventoryScreen.kt` | UI inventario — consume `InventoryViewModel` |
 | `ui/sales/SalesCalculatorViewModel.kt` | Estado de búsqueda modal (results/loading/error) |
@@ -16,20 +16,32 @@
 ## Endpoints
 
 ```
-GET /api/products                       ← carga completa (Inventario)
-GET /api/products/search/quick?q={q}   ← búsqueda rápida (modal Calculadora)
+GET /api/products?cursor={id}&limit={n}  ← inventario paginado
+GET /api/products/search/quick?q={q}     ← búsqueda rápida (modal Calculadora)
 ```
 
-Requiere sesión activa (cookie). El `store_id` lo resuelve el backend desde la sesión — no se envía en la request Android.
+Requiere sesión activa (cookie). `store_id` lo resuelve el backend desde la sesión.
+
+Parámetros paginación:
+- `cursor` — ID del último producto de la página anterior (omitir en primera página)
+- `limit` — items por página (default 50, máx 100)
 
 Respuesta:
 ```json
 {
   "success": true,
   "products": [...],
-  "total": 15
+  "total": 50,
+  "hasMore": true,
+  "nextCursor": "uuid-del-ultimo-producto"
 }
 ```
+
+### Mecanismo cursor
+
+`PostgresReader.find()` ejecuta `LIMIT limit+1` internamente. El backend detecta si hay más items comparando `rawProducts.length > pageLimit`, devuelve solo `pageLimit` items y el ID del último como `nextCursor`.
+
+En la siguiente request Android envía `?cursor={nextCursor}` → PostgresReader genera `WHERE (created_at < cursor_value OR ...)` para continuar desde ese punto.
 
 ---
 
@@ -59,8 +71,17 @@ Mapper en `ProductDto.toProduct()`.
 
 ---
 
+## Paginación — InventoryViewModel
+
+- `loadProducts()` → resetea cursor, carga primera página.
+- `loadMore()` → usa `nextCursor` guardado, appends a `_products`. Guard: no ejecuta si `isLoadingMore`, `!hasMore`, o `nextCursor == null`.
+- `InventoryScreen` dispara `loadMore()` vía `LaunchedEffect` cuando el último item visible está a 4 posiciones del fondo.
+- El buscador filtra client-side sobre los items ya cargados. Para buscar en todo el catálogo usar el modal de Calculadora.
+
+---
+
 ## Restricciones
 
-- `searchQuick` filtra solo productos activos (`is_active: true` forzado en backend).
-- Máximo 15 resultados por búsqueda (límite del endpoint).
-- La búsqueda NO funciona offline — no hay fallback local.
+- `GET /api/products` filtra solo productos activos (`is_active: true` por defecto).
+- `searchQuick` devuelve máximo 15 resultados.
+- Sin offline — no hay fallback local.

@@ -7,6 +7,7 @@
 | [design-tokens.md](modules/design-tokens.md) | Brand color palette, token names, metric card rotation |
 | [cashbox.md](modules/cashbox.md) | Estado de cajas, routing por rol, endpoints, reglas de ViewModel |
 | [products.md](modules/products.md) | Búsqueda de productos: endpoint, mapeo de campos backend↔Android, comportamiento modal |
+| [customers.md](modules/customers.md) | Clientes: endpoint, mapeo de campos, paginación cursor |
 
 ## Project
 
