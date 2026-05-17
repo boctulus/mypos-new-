@@ -20,7 +20,7 @@ GET /api/products?cursor={id}&limit={n}  ← inventario paginado
 GET /api/products/search/quick?q={q}     ← búsqueda rápida (modal Calculadora)
 ```
 
-Requiere sesión activa (cookie). `store_id` lo resuelve el backend desde la sesión.
+Requiere `Authorization: Bearer <access_token>`. `store_id` lo resuelve el backend desde los claims JWT.
 
 Parámetros paginación:
 - `cursor` — ID del último producto de la página anterior (omitir en primera página)

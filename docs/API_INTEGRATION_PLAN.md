@@ -18,7 +18,7 @@ Android **NUNCA** habla con OpenFactura directamente.
 | Decisión | Valor |
 |---|---|
 | HTTP Client | Retrofit 2.9.0 + OkHttp 4.12.0 (ya en build.gradle.kts) |
-| Auth | Firebase Auth — `TokenProvider` caché + `Authorization: Bearer` |
+| Auth | JWT backend (`POST /api/auth/login`) — `JwtTokenStorage` + `Authorization: Bearer` + refresh via `JwtRefreshInterceptor` |
 | BASE_URL | `BuildConfig.BASE_URL_BACKEND` (inyectada en build) |
 | Offline full | Fuera de scope (MVP) |
 | Resiliencia | `SalePendingQueue` con estados explícitos |
@@ -145,50 +145,51 @@ android {
 
 ---
 
-## Autenticación — Firebase Auth
+## Autenticación — JWT Backend
 
-### TokenProvider (caché en memoria + mutex anti-race-condition)
+### Flujo de login
 
-Múltiples requests concurrentes (ej: 10 a la vez) pueden detectar el token null/expirado
-simultáneamente y lanzar 10 refreshes en paralelo contra Firebase. El `Mutex` garantiza
-que solo un refresh ocurra a la vez; los demás esperan y reusan el resultado.
+1. Android llama `POST /api/auth/login` con `{ email, password }`
+2. Backend autentica con Firebase, emite `{ access_token, refresh_token, expires_in }`
+3. `JwtTokenStorage.saveTokens()` persiste ambos en SharedPreferences
+4. Claims (uid, email, role, store_id) se extraen del payload JWT (base64) sin librería externa
+5. Se construye `UserSession` a partir de los claims
 
-```kotlin
-object TokenProvider {
-    @Volatile private var cachedToken: String? = null
-    private val refreshMutex = Mutex()
+### JwtTokenStorage
 
-    suspend fun getToken(forceRefresh: Boolean = false): String? {
-        if (cachedToken != null && !forceRefresh) return cachedToken
+- Persiste `accessToken` y `refreshToken` en SharedPreferences `"JwtTokens"`
+- `isAccessTokenValid()`: decodifica `exp` claim y compara con tiempo actual (buffer 60s)
+- `decodePayload()`: base64-decode del payload, deserializa con Gson a `JwtPayload`
+- Inicializado en `ApiClient.init(context)` con `applicationContext`
 
-        return refreshMutex.withLock {
-            // double-check dentro del lock
-            if (cachedToken != null && !forceRefresh) return@withLock cachedToken
-
-            val token = FirebaseAuth.getInstance()
-                .currentUser?.getIdToken(forceRefresh)?.await()?.token
-            cachedToken = token
-            token
-        }
-    }
-}
-```
-
-- `AuthInterceptor` lee `TokenProvider.cachedToken` (no `runBlocking`, no bloquea OkHttp)
-- `TokenRefreshInterceptor` ante 401: `getToken(forceRefresh = true)` + retry
-- Si el retry falla → propagar error
-
-### OkHttp
+### OkHttp — orden de interceptores
 
 ```kotlin
 OkHttpClient.Builder()
-    .connectTimeout(10, TimeUnit.SECONDS)
-    .readTimeout(30, TimeUnit.SECONDS)
-    .writeTimeout(30, TimeUnit.SECONDS)
-    .addInterceptor(AuthInterceptor())
-    .addInterceptor(TokenRefreshInterceptor())
-    .addInterceptor(RetryInterceptor(maxRetries = 2))  // solo errores de red, nunca 4xx
-    .addInterceptor(HttpLoggingInterceptor().apply { level = Level.BODY })  // solo debug
+    .addInterceptor(JwtAuthInterceptor())     // agrega Authorization: Bearer <token>
+    .addInterceptor(JwtRefreshInterceptor())  // en 401: refresh + retry
+    .addInterceptor(DebugHttpInterceptor())   // logging detallado
+    .addInterceptor(HttpLoggingInterceptor()) // logging OkHttp
+```
+
+### JwtAuthInterceptor
+
+Lee `JwtTokenStorage.getAccessToken()` y agrega `Authorization: Bearer <token>`.
+Si no hay token, el request pasa sin header (endpoints públicos como `/api/auth/login`).
+
+### JwtRefreshInterceptor
+
+- Detecta `HTTP 401` en la respuesta
+- Llama `POST /api/auth/refresh` con `{ refresh_token }` via OkHttpClient simple (sin JWT interceptors)
+- Si refresh exitoso → guarda nuevos tokens, reintenta request original con nuevo token
+- `synchronized(refreshLock)`: evita refreshes paralelos; thread secundario reutiliza el token ya actualizado
+- Si refresh falla → devuelve el 401 original al ViewModel
+
+### Sesión en LoginActivity
+
+```kotlin
+ApiClient.hasValidSession() // → JwtTokenStorage.isAccessTokenValid()
+SessionManager.clear(context) // → borra UserSession + JwtTokenStorage
 ```
 
 ---
@@ -288,54 +289,45 @@ sealed class DteState {
 
 ---
 
-## Fases de Implementación
+## Estado de Implementación (2026-05-17)
 
-### Fase 0: Infraestructura base
-- Agregar `buildConfig = true` + `buildConfigField` en `build.gradle.kts`
-- `ApiConfig.kt`, `TokenProvider.kt`
-- `ApiClient.kt` con `AuthInterceptor` + `TokenRefreshInterceptor` + timeouts
-- `ConnectivityObserver.kt`
+### ✅ Completado
 
-### Fase 1: Productos + Inventario
-- `ApiService` con `GET /api/products`
-- `ProductDto.kt`, `ProductRepository.kt`
-- Actualizar `ProductsViewModel`, `InventoryViewModel`
+| Fase | Estado |
+|---|---|
+| Infraestructura base (build.gradle, ApiConfig, ApiClient, Retrofit) | ✅ |
+| JWT Auth: `JwtTokenStorage`, `JwtAuthInterceptor`, `JwtRefreshInterceptor` | ✅ |
+| Login JWT: `AuthRepository` → `POST /api/auth/login` | ✅ |
+| Productos: `ProductDto`, `ProductRepository`, `ProductsViewModel`, `InventoryViewModel` | ✅ |
+| Clientes: `CustomerDto`, `CustomerRepository`, `CustomersViewModel` | ✅ |
+| Pagos/Historial: `SaleDocumentDto`, `ReportRepository`, `PaymentsViewModel`, `ReportsViewModel` | ✅ |
+| Caja: `CashboxRepository`, `CashboxViewModel`, DTOs completos | ✅ |
+| Backend: `req.session.user` → `req.user` en `products/routes/api.js`, `sales/routes/api.js` | ✅ |
+| Backend: `isAuthenticated` → `requireAnyAuth` en `routes/api/supabase.routes.js` | ✅ |
 
-### Fase 2: Customers + Sales
-- `ApiService` con `GET /api/customers`, `POST /api/sales`, `GET /api/sales/*`
-- `CustomerDto.kt`, `SaleDto.kt`
-- `CustomerRepository.kt`, `SaleRepository.kt`
-- `SalePendingQueue.kt`
-- Actualizar `CustomersViewModel`, `SalesCalculatorViewModel`
+### ⏳ Pendiente
 
-### Fase 3: Payments + Cashbox
-- `ApiService` con `GET/POST /api/cashbox/*`
-- `CashboxDto.kt`, `CashboxRepository.kt`
-- Actualizar `PaymentsViewModel`
+| Fase | Estado |
+|---|---|
+| `SalePendingQueue` (offline queue) | ⏳ |
+| `ConnectivityObserver` | ⏳ |
+| DTE (facturación electrónica, polling + backoff) | ⏳ |
+| Room / Offline full | Fuera de scope (MVP) |
 
-### Fase 4: Reports + Notifications
-- `ReportRepository.kt`, `NotificationRepository.kt`
-- Actualizar `ReportsViewModel`, `NotificationsViewModel`
+### ⚠️ Limitación conocida
 
-### Fase 5: DTE (async)
-- `InvoicingDto.kt` con `job_id` y `DteStatus`
-- `InvoicingRepository.kt` con polling + backoff
-- `BillingViewModel` con `DteState`
-- UI no bloqueante
-
-### Fase 6: Room / Offline full — FUERA DE SCOPE (MVP)
+- El middleware web `isAuthenticated` sigue siendo cookie-only (es correcto: solo se usa en el login HTML del panel web, no en rutas Android).
 
 ---
 
 ## Verificación
 
-- App compila con `BuildConfig.BASE_URL_BACKEND` inyectado
-- `GET /api/products` retorna datos reales (no `DummyDataRepository`)
+- Login JWT: `POST /api/auth/login` devuelve `access_token` + `refresh_token`
 - Header `Authorization: Bearer <token>` presente en todas las requests (OkHttp LoggingInterceptor)
-- Token expirado → `TokenRefreshInterceptor` refresca y reintenta automáticamente
-- Sale fallida por red → `SalePendingQueue` en `PENDING`, se sincroniza al reconectar
-- DTE: POST devuelve `job_id`, polling con backoff visible en UI, no se congela
-- Ningún ViewModel llama a `DummyDataRepository` en producción
+- Token expirado → `JwtRefreshInterceptor` refresca y reintenta automáticamente
+- `GET /api/products`, `GET /api/sales` retornan datos reales con JWT
+- `GET /api/supabase/customers` funciona con Bearer token
+- `ApiClient.hasValidSession()` → `JwtTokenStorage.isAccessTokenValid()`
 
 ---
 
