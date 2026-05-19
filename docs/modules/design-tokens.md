@@ -38,8 +38,18 @@ listOf(MetricPurple, BrandAction, ChartTeal, BrandSecondary)
 
 ---
 
+## Theme Mode
+
+- App forces **Light Mode** globally via `FriendlyPOSApp.onCreate()` (`AppCompatDelegate.MODE_NIGHT_NO`).
+- Dark mode is **not supported**. All tokens are light-mode-only values.
+- `values-night/themes.xml` exists but is irrelevant while forced light mode is active.
+- To add dark theme support in the future: migrate hardcoded hex values in layouts to `?attr/` or `values-night/colors.xml` variants, then remove the `MODE_NIGHT_NO` call.
+
+---
+
 ## Rules
 
 - New screens MUST use `AppColors.*` (Compose) or `@color/brand_*` / `@color/surface_*` / `@color/table_*` (XML).
 - Legacy XML color names (e.g. `colorAccent`, `colorPrimary`, `successGreen`) are deprecated — do not use in new code.
 - Green (`#4CAF50` and variants) is deprecated as a primary UI color.
+- Do NOT add `values-night/colors.xml` entries without first removing the forced light mode.
